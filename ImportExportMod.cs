@@ -5,6 +5,7 @@ using NativeUI;
 using System.Windows.Forms;
 using System;
 using GTA.Math;
+using System.Drawing;
 
 namespace ImportExportModNamespace
 {
@@ -30,6 +31,7 @@ namespace ImportExportModNamespace
         private MenuPool menuPool;
         private UIMenu warehouseMenu;
         private bool wasInsideWarehouse;
+
 
         public ImportExportMod()
         {
@@ -69,115 +71,109 @@ namespace ImportExportModNamespace
         }
 
         private void OnTick(object sender, EventArgs e)
-{
-    laptopMenu.Process();
-    menuPool.ProcessMenus();
-    warehouseManager.UpdateNearestWarehouse();
-    exitWarehouseManager.OnTick(warehouseInteriorManager);
-
-    bool isInsideWarehouse = warehouseInteriorManager.IsPlayerInsideWarehouse();
-    if (isInsideWarehouse != wasInsideWarehouse)
-    {
-        wasInsideWarehouse = isInsideWarehouse;
-
-        if (isInsideWarehouse)
         {
-            GTA.UI.Notification.Show("Inside warehouse.");
-        }
-        else
-        {
-            GTA.UI.Notification.Show("Outside warehouse.");
-        }
-    }
+            laptopMenu.Process();
+            menuPool.ProcessMenus();
+            warehouseManager.UpdateNearestWarehouse();
+            exitWarehouseManager.OnTick(warehouseInteriorManager);
 
-    if (isInsideWarehouse)
-    {
-        float distanceToLaptop = Game.Player.Character.Position.DistanceTo(laptopPosition);
-
-        if (distanceToLaptop < 2.0f) // Adjust the distance threshold as needed
-        {
-            if (!laptopMenu.Menu.Visible)
+            bool isInsideWarehouse = warehouseInteriorManager.IsPlayerInsideWarehouse();
+            if (isInsideWarehouse != wasInsideWarehouse)
             {
-                laptopMenu.Menu.Visible = true;
-            }
-        }
-        else
-        {
-            if (laptopMenu.Menu.Visible)
-            {
-                laptopMenu.Menu.Visible = false;
-            }
-        }
-    }
+                wasInsideWarehouse = isInsideWarehouse;
 
-    if (!isInsideWarehouse)
-    {
-        float distanceToNearestWarehouse = Game.Player.Character.Position.DistanceTo(warehouseManager.NearestWarehouseLocation ?? Vector3.Zero);
-
-        if (distanceToNearestWarehouse < 5f)
-        {
-            bool isOwned = warehouseManager.OwnedWarehouseLocation == warehouseManager.NearestWarehouseLocation;
-
-            warehouseMenu.MenuItems[0].Enabled = !isOwned;
-            warehouseMenu.MenuItems[1].Enabled = isOwned;
-            warehouseMenu.MenuItems[2].Enabled = isOwned;
-
-            if (!warehouseMenu.Visible)
-            {
-                warehouseMenu.Visible = true;
-            }
-        }
-        else
-        {
-            if (warehouseMenu.Visible)
-            {
-                warehouseMenu.Visible = false;
-            }
-        }
-
-        if (carSourceManager.IsMissionActive)
-        {
-            Vehicle missionCar = carSourceManager.missionCar;
-            Blip missionCarBlip = carSourceManager.missionCarBlip;
-
-            if (missionCar != null && missionCarBlip != null)
-            {
-                if (Game.Player.Character.IsInVehicle(missionCar))
+                if (isInsideWarehouse)
                 {
-                    missionCarBlip.Alpha = 0;
+                    GTA.UI.Notification.Show("Inside warehouse.");
+                }
+                else
+                {
+                    GTA.UI.Notification.Show("Outside warehouse.");
+                }
+            }
 
-                    // Set the warehouse waypoint when the player gets in the target vehicle
-                    if (!carSourceManager.WarehouseWaypointSet)
+            if (isInsideWarehouse)
+            {
+                float distanceToLaptop = Game.Player.Character.Position.DistanceTo(laptopPosition);
+
+                if (distanceToLaptop < 2.0f) // Adjust the distance threshold as needed
+                {
+                    if (!laptopMenu.Menu.Visible)
                     {
-                        Function.Call(Hash.SET_NEW_WAYPOINT, warehouseManager.OwnedWarehouseLocation.X, warehouseManager.OwnedWarehouseLocation.Y);
-                        carSourceManager.WarehouseWaypointSet = true;
+                        laptopMenu.Menu.Visible = true;
                     }
                 }
                 else
                 {
-                    missionCarBlip.Alpha = 255;
+                    if (laptopMenu.Menu.Visible)
+                    {
+                        laptopMenu.Menu.Visible = false;
+                    }
                 }
             }
-        }
 
-        // Check if the player has reached the warehouse
-        if (carSourceManager.IsMissionActive && warehouseManager.IsPlayerNearDropOff)
-        {
-            if (Game.Player.WantedLevel == 0)
+            if (!isInsideWarehouse)
             {
-                // The player has brought the sourced car to the warehouse
-                // Perform any additional tasks here, e.g., display a message, increase the player's money, etc.
+                float distanceToNearestWarehouse = Game.Player.Character.Position.DistanceTo(warehouseManager.NearestWarehouseLocation ?? Vector3.Zero);
 
-                // End the sourcing mission
-                carSourceManager.EndCarSourcingMission();
-            }
-            else
+                if (distanceToNearestWarehouse < 5f)
+                {
+                    bool isOwned = warehouseManager.OwnedWarehouseLocation == warehouseManager.NearestWarehouseLocation;
+
+                    warehouseMenu.MenuItems[0].Enabled = !isOwned;
+                    warehouseMenu.MenuItems[1].Enabled = isOwned;
+                    warehouseMenu.MenuItems[2].Enabled = isOwned;
+
+                    if (!warehouseMenu.Visible)
+                    {
+                        warehouseMenu.Visible = true;
+                    }
+                }
+                else
+                {
+                    if (warehouseMenu.Visible)
+                    {
+                        warehouseMenu.Visible = false;
+                    }
+                }
+
+        if (carSourceManager.IsMissionActive)
             {
-                // Display a message for the player to lose the cops
-                GTA.UI.Notification.Show("Lose the cops before delivering the car.");
+                Vehicle missionCar = carSourceManager.missionCar;
+                Blip missionCarBlip = carSourceManager.missionCarBlip;
+
+                if (missionCar != null && missionCarBlip != null)
+                {
+                    if (Game.Player.Character.IsInVehicle(missionCar))
+                    {
+                        GTA.UI.Notification.Show("Player is in mission car."); // Debug notification
+                        missionCarBlip.Alpha = 0;
+
+                        // Set the warehouse waypoint when the player gets in the target vehicle
+                        if (!carSourceManager.WarehouseWaypointSet)
+                        {
+                            Function.Call(Hash.SET_NEW_WAYPOINT, warehouseManager.OwnedWarehouseLocation.X, warehouseManager.OwnedWarehouseLocation.Y);
+                            carSourceManager.WarehouseWaypointSet = true;
+                            GTA.UI.Notification.Show("Setting warehouse waypoint."); // Debug notification
+                        }
+                    }
+                    else
+                    {
+                missionCarBlip.Alpha = 255;
             }
         }
     }
+
+
+            if (carSourceManager.PlayerEnteredMissionCar && !carSourceManager.WarehouseWaypointSet)
+            {
+                Function.Call(Hash.SET_NEW_WAYPOINT, warehouseManager.OwnedWarehouseLocation.X, warehouseManager.OwnedWarehouseLocation.Y);
+                carSourceManager.WarehouseWaypointSet = true;
+                GTA.UI.Notification.Show("Route to the warehouse set.");
+
+            }
+        }
+    
 
     // Add this line to update the 'Source a Vehicle' button state
     laptopMenu.Menu.MenuItems[0].Enabled = !carSourceManager.IsMissionActive;
@@ -230,12 +226,15 @@ namespace ImportExportModNamespace
             warehouseMenu.RefreshIndex();
         }
     
-        private void PurchaseWarehouse(Warehouse warehouseToPurchase)
+                private void PurchaseWarehouse(Warehouse warehouseToPurchase)
                 {
                     OwnedWarehouseData newOwnedWarehouse = new OwnedWarehouseData(warehouseToPurchase.Location.X, warehouseToPurchase.Location.Y, warehouseToPurchase.Location.Z); // Extract the location from warehouseToPurchase
 
                     warehouseOwnershipManager.SetOwnedWarehouse(newOwnedWarehouse);
                     warehouseOwnershipManager.SaveOwnedWarehouse();
+
+                    // Call the new BuyWarehouse method here
+                    warehouseManager.BuyWarehouse(warehouseToPurchase.Location);
 
                     // ... (Additional logic for purchasing a warehouse, e.g., deducting money, showing a notification, etc.)
 
@@ -243,6 +242,7 @@ namespace ImportExportModNamespace
                     warehouseManager.SetOwnedWarehouseBlip(World.CreateBlip(warehouseManager.NearestWarehouseLocation ?? Vector3.Zero));
                     warehouseManager.UpdateOwnedWarehouseBlip();
                 }
+
 
                 private void SellWarehouse()
                 {

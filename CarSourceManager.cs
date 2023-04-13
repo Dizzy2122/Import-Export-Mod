@@ -11,6 +11,7 @@ namespace ImportExportModNamespace
 {
     public class CarSourceManager
     {
+        public Blip WarehouseBlip { get; set; }
         public bool PlayerEnteredMissionCar { get; set; } = false;
         public bool WarehouseWaypointSet { get; set; } = false;
         public ICarSourcingMission CurrentMission { get; private set; }
@@ -26,14 +27,12 @@ namespace ImportExportModNamespace
         private List<Vector3> carSpawnLocations = new List<Vector3>
         {
             new Vector3(1010.3323f, -1870.058f, 30.4136f), //parkingspot outside the test warehouse
-            //new Vector3(932.9781f, -1812.830f, 30.2651f), // down the street from test warehouse
-            //new Vector3(1122.9739f, -31253.734f, 5.2747f), // dock parking lot
+            new Vector3(932.9781f, -1812.830f, 30.2651f), // down the street from test warehouse
         };
         private List<float> carSpawnHeadings = new List<float>
         {
             0f,  // Heading for the first spawn location
             90f, // Heading for the second spawn location
-            180f,
         };
 
 
@@ -72,6 +71,7 @@ namespace ImportExportModNamespace
 
             GTA.UI.Notification.Show("Created mission car blip."); // Debug notification
             GTA.UI.Notification.Show($"Car position: {missionCar.Position}");
+            GTA.UI.Notification.Show($"Warehouse position: {warehouseManager.OwnedWarehouseLocation}"); // Debug notification
 
             // 4. Set up mission elements
             SetupMissionElements(missionCar, missionType);
@@ -90,6 +90,12 @@ namespace ImportExportModNamespace
                 missionCarBlip = null;
             }
             Function.Call(Hash.CLEAR_GPS_PLAYER_WAYPOINT);
+
+            if (WarehouseBlip != null)
+            {
+                WarehouseBlip.Delete();
+                WarehouseBlip = null;
+            }
         }
 
 

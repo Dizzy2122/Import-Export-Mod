@@ -265,7 +265,10 @@ namespace ImportExportModNamespace
             return OwnedWarehouse != null ? OwnedWarehouse.Location + new Vector3(0, 0, 10.0f) : Vector3.Zero;
         }
 
-
+        public void BuyWarehouse(Vector3 warehouseLocation)
+        {
+            OwnedWarehouseLocation = warehouseLocation;
+        }
 
 
     }
