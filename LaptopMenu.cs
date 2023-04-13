@@ -72,6 +72,7 @@ namespace ImportExportModNamespace
             {
                 carSourceManager.StartCarSourcingMission();
                 TeleportToWarehouseExterior?.Invoke();
+                sender.Visible = false;
             }
             else if (selectedItem == sellWarehouseVehicleItem)
             {

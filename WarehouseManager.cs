@@ -11,19 +11,29 @@ namespace ImportExportModNamespace
 {
     public class WarehouseManager
 {
-    public bool IsPlayerNearWarehouse
-    {
-        get
+        public bool IsPlayerNearWarehouse
         {
-            if (OwnedWarehouseLocation == Vector3.Zero) return false;
-            return World.GetDistance(Game.Player.Character.Position, OwnedWarehouseLocation) < 50f;
+            get
+            {
+                if (OwnedWarehouseLocation == Vector3.Zero) return false;
+                return World.GetDistance(Game.Player.Character.Position, OwnedWarehouseLocation) < 50f;
+            }
         }
-    }
+        public bool IsPlayerNearDropOff
+        {
+            get
+            {
+                Vector3 dropOffLocation = GetOwnedWarehouseDropOffLocation();
+                if (dropOffLocation == Vector3.Zero) return false;
+                return World.GetDistance(Game.Player.Character.Position, dropOffLocation) < 10f;
+            }
+        }
+
         public int WarehouseCost { get; } = 0; // Change when version is final
         public Blip OwnedWarehouseBlip { get; private set; }
         public List<Warehouse> Warehouses { get; private set; }
         public Warehouse NearestWarehouse { get; set; }
-        public Vector3 NearestWarehouseLocation => NearestWarehouse?.Location ?? Vector3.Zero;
+        public Vector3? NearestWarehouseLocation => NearestWarehouse?.Location;
         public Warehouse OwnedWarehouse { get; private set; }
         public Vector3 OwnedWarehouseLocation
         {
@@ -62,10 +72,10 @@ namespace ImportExportModNamespace
             CreateBlips();
 
             // Call CreateOwnedWarehouseBlip if the warehouse is already owned when the script is loaded
-            if (OwnedWarehouse != null)
+            /*if (OwnedWarehouse != null)
             {
                 CreateOwnedWarehouseBlip(OwnedWarehouse);
-            }
+            }*/
         }
 
         public void CreateBlips()
@@ -140,7 +150,7 @@ namespace ImportExportModNamespace
                 previousOwnedWarehouse.Blip.Name = "Warehouse";
             }
 
-            UpdateOwnedWarehouseBlip();
+            UpdateOwnedWarehouseBlip(previousOwnedWarehouse);
         }
 
 
@@ -247,6 +257,17 @@ namespace ImportExportModNamespace
             // Return the location of the owned warehouse, or Vector3.Zero if there's no owned warehouse
             return OwnedWarehouse != null ? OwnedWarehouse.Location : Vector3.Zero;
         }
+
+        public Vector3 GetOwnedWarehouseDropOffLocation()
+        {
+            // Return the drop-off location of the owned warehouse, or Vector3.Zero if there's no owned warehouse
+            // You should replace the 10.0f value with an appropriate value that represents the distance from the warehouse.
+            return OwnedWarehouse != null ? OwnedWarehouse.Location + new Vector3(0, 0, 10.0f) : Vector3.Zero;
+        }
+
+
+
+
     }
 }
 
