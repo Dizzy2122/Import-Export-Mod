@@ -2,10 +2,9 @@
 using GTA;
 using GTA.Native;
 using NativeUI;
-using System.Windows.Forms;
+using System.Collections.Generic;
 using System;
 using GTA.Math;
-using System.Drawing;
 
 namespace ImportExportModNamespace
 {
@@ -14,6 +13,7 @@ namespace ImportExportModNamespace
     {
 
         // Declare managers here
+        private WarehouseVehicleStorage warehouseVehicleStorage;
         private WarehouseManager warehouseManager;
         private WarehouseOwnershipManager warehouseOwnershipManager;
         private ExitWarehouseManager exitWarehouseManager;
@@ -24,6 +24,7 @@ namespace ImportExportModNamespace
         private LaptopMenu laptopMenu;
         private Vector3 laptopPosition = new Vector3(964.4566f, -3002.892f, -39.6399f);
         private const string IniFilePath = "scripts\\ImportExportModSettings.ini";
+        public bool IsMissionActive { get; set; } = false;
 
 
 
@@ -50,10 +51,12 @@ namespace ImportExportModNamespace
                 warehouseManager.SetOwnedWarehouseLocation(warehouseOwnershipManager.GetOwnedWarehouse().ToVector3());
             }
 
-            
-
-
             warehouseManager.CreateBlips();
+
+
+            // Create an Action delegate and pass it to the constructor
+            Action<VehicleEventArgs> onVehicleTeleportedInsideAction = OnVehicleTeleportedInside;
+            warehouseVehicleStorage = new WarehouseVehicleStorage(onVehicleTeleportedInsideAction, this);
 
             // Initialize MenuPool
             menuPool = new MenuPool();
@@ -70,12 +73,39 @@ namespace ImportExportModNamespace
             // Other initialization code, including setting up menus, key bindings, etc.
         }
 
+
         private void OnTick(object sender, EventArgs e)
         {
             laptopMenu.Process();
             menuPool.ProcessMenus();
             warehouseManager.UpdateNearestWarehouse();
             exitWarehouseManager.OnTick(warehouseInteriorManager);
+
+            // Define the warehouse door position
+            Vector3 warehouseDoorPosition = warehouseManager.OwnedWarehouseLocation;
+
+            Vehicle playerVehicle = Game.Player.Character.CurrentVehicle;
+            float triggerDistance = 10.0f; // Set the distance threshold as needed
+
+
+            if (playerVehicle != null && playerVehicle.Position.DistanceTo(warehouseDoorPosition) < triggerDistance &&
+            (!carSourceManager.IsMissionActive || (carSourceManager.IsMissionActive && carSourceManager.missionCar == playerVehicle)))
+            {
+                // Find an available storage slot and calculate the inside warehouse position
+                int availableSlot = warehouseVehicleStorage.FindAvailableSlot();
+                if (availableSlot != -1)
+                {
+                    Vector3 insideWarehousePosition = warehouseVehicleStorage.GetStorageSlotPosition(availableSlot);
+
+                    // Define the player inside warehouse position (e.g., 2 units forward and 2 units up from the vehicle's storage slot)
+                    Vector3 playerInsideWarehousePosition = insideWarehousePosition + new Vector3(0.0f, 2.0f, 2.0f);
+
+                    GTA.UI.Notification.Show("Preparing to store vehicle."); // Add this debug notification
+
+                    // Handle vehicle storage
+                    warehouseVehicleStorage.HandleVehicleStorage(playerVehicle, warehouseDoorPosition, insideWarehousePosition, availableSlot);
+                }
+            }
 
             bool isInsideWarehouse = warehouseInteriorManager.IsPlayerInsideWarehouse();
             if (isInsideWarehouse != wasInsideWarehouse)
@@ -136,8 +166,9 @@ namespace ImportExportModNamespace
                         warehouseMenu.Visible = false;
                     }
                 }
+            }
 
-        if (carSourceManager.IsMissionActive)
+            if (carSourceManager.IsMissionActive)
             {
                 Vehicle missionCar = carSourceManager.missionCar;
                 Blip missionCarBlip = carSourceManager.missionCarBlip;
@@ -159,31 +190,21 @@ namespace ImportExportModNamespace
                     }
                     else
                     {
-                missionCarBlip.Alpha = 255;
+                        missionCarBlip.Alpha = 255;
+                    }
+                }
             }
-        }
-    }
-
 
             if (carSourceManager.PlayerEnteredMissionCar && !carSourceManager.WarehouseWaypointSet)
             {
                 Function.Call(Hash.SET_NEW_WAYPOINT, warehouseManager.OwnedWarehouseLocation.X, warehouseManager.OwnedWarehouseLocation.Y);
                 carSourceManager.WarehouseWaypointSet = true;
                 GTA.UI.Notification.Show("Route to the warehouse set.");
-
             }
+
+            // Add this line to update the 'Source a Vehicle' button state
+            laptopMenu.Menu.MenuItems[0].Enabled = !carSourceManager.IsMissionActive;
         }
-    
-
-    // Add this line to update the 'Source a Vehicle' button state
-    laptopMenu.Menu.MenuItems[0].Enabled = !carSourceManager.IsMissionActive;
-}
-
-
-
-
-
-
 
 
 
@@ -261,6 +282,24 @@ namespace ImportExportModNamespace
                     if (exteriorLocation != Vector3.Zero)
                     {
                         Game.Player.Character.Position = exteriorLocation;
+                    }
+                }
+                public void OnVehicleTeleportedInside(VehicleEventArgs e)
+                {
+                    GTA.UI.Notification.Show("OnVehicleTeleportedInside called."); // Debug notification
+
+                    // Check if the mission is active and if the vehicle teleported inside is the mission car
+                    if (carSourceManager.IsMissionActive && e.Vehicle == carSourceManager.missionCar)
+                    {
+                        // Perform any necessary actions here, such as showing the inside menus, adding money, or updating player stats
+
+                        // End the mission
+                        carSourceManager.ActiveMission?.EndMission(); // Call the EndMission method of the active mission instance
+                        carSourceManager.EndMission();
+                        GTA.UI.Notification.Show("Mission complete!");
+
+                        // Remove the waypoint
+                        Function.Call(Hash.SET_WAYPOINT_OFF);
                     }
                 }
             }
